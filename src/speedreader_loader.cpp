@@ -3,18 +3,9 @@
 // Initialize static member
 void (*SpeedReaderLoader::s_logCallback)(const std::string&, ELogLevel) = nullptr;
 
-void SpeedReaderLoader::LogWrapperFunc(const char* message, ESpeedReaderLogLevel level) {
+void SpeedReaderLoader::LogWrapperFunc(const char* message, ELogLevel level) {
     if (!s_logCallback) return;
-
-    ELogLevel mappedLevel;
-    switch (level) {
-    case ESpeedReaderLogLevel_INFO: mappedLevel = ELogLevel_INFO; break;
-    case ESpeedReaderLogLevel_WARNING: mappedLevel = ELogLevel_WARNING; break;
-    case ESpeedReaderLogLevel_CRITICAL: mappedLevel = ELogLevel_CRITICAL; break;
-    case ESpeedReaderLogLevel_DEBUG: mappedLevel = ELogLevel_DEBUG; break;
-    default: mappedLevel = ELogLevel_INFO;
-    }
-    s_logCallback(std::string(message), mappedLevel);
+    s_logCallback(std::string(message), level);
 }
 
 SpeedReaderLoader::SpeedReaderLoader()
@@ -24,20 +15,26 @@ SpeedReaderLoader::SpeedReaderLoader()
     , GetCurrentSpeed(nullptr)
     , GetMaxSpeed(nullptr)
     , IsSpeedReaderValid(nullptr)
-    , RefreshAddresses(nullptr) {}
+    , RefreshAddresses(nullptr)
+    , SetLogLevel(nullptr) {}
 
 SpeedReaderLoader::~SpeedReaderLoader() {
     Unload();
 }
 
-bool SpeedReaderLoader::Load(void (*logCallback)(const std::string&, ELogLevel)) {
+bool SpeedReaderLoader::Load(void (*logCallback)(const std::string&, ELogLevel), ELogLevel initLogLevel) {
     if (m_hModule) return true; // Already loaded
 
     // Store the log callback
     s_logCallback = logCallback;
 
-    m_hModule = LoadLibraryA("speedreader.dll");
-    if (!m_hModule) return false;
+    // Try loading from addons folder first
+    m_hModule = LoadLibraryA("addons/speedreader.dll");
+    if (!m_hModule) {
+        // Fall back to main folder
+        m_hModule = LoadLibraryA("speedreader.dll");
+        if (!m_hModule) return false;
+    }
 
     // Load all function pointers
     InitSpeedReader = LoadFunction<decltype(InitSpeedReader)>("InitSpeedReader");
@@ -46,15 +43,18 @@ bool SpeedReaderLoader::Load(void (*logCallback)(const std::string&, ELogLevel))
     GetMaxSpeed = LoadFunction<float (*)()>("GetMaxSpeed");
     IsSpeedReaderValid = LoadFunction<bool (*)()>("IsSpeedReaderValid");
     RefreshAddresses = LoadFunction<bool (*)()>("RefreshAddresses");
+    SetLogLevel = LoadFunction<void (*)(ELogLevel)>("SetLogLevel");
 
     // Verify all functions were loaded
-    if (!InitSpeedReader || !CleanupSpeedReader || !GetCurrentSpeed || !GetMaxSpeed || !IsSpeedReaderValid || !RefreshAddresses) {
+    if (!InitSpeedReader || !CleanupSpeedReader || !GetCurrentSpeed || !GetMaxSpeed || !IsSpeedReaderValid || !RefreshAddresses || !SetLogLevel) {
         Unload();
         return false;
     }
+    // Test callback with logwrapperfunc
+    LogWrapperFunc("Test", ELogLevel::ELogLevel_INFO);
 
     // Initialize with logging callback
-    return InitSpeedReader(LogWrapperFunc);
+    return InitSpeedReader(LogWrapperFunc, initLogLevel);
 }
 
 void SpeedReaderLoader::Unload() {

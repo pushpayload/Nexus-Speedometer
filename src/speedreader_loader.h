@@ -10,16 +10,17 @@ public:
     SpeedReaderLoader();
     ~SpeedReaderLoader();
 
-    bool Load(void (*logCallback)(const std::string&, ELogLevel) = nullptr);
+    bool Load(void (*logCallback)(const std::string&, ELogLevel) = nullptr, ELogLevel initLogLevel = ELogLevel::ELogLevel_INFO);
     void Unload();
 
     // Function pointers matching the DLL exports
-    bool (*InitSpeedReader)(SpeedReaderLogCallback);
+    bool (*InitSpeedReader)(SpeedReaderLogCallback, ELogLevel);
     void (*CleanupSpeedReader)();
     float (*GetCurrentSpeed)();
     float (*GetMaxSpeed)();
     bool (*IsSpeedReaderValid)();
     bool (*RefreshAddresses)();
+    void (*SetLogLevel)(ELogLevel);
 
     bool IsLoaded() const { return m_hModule != nullptr; }
 
@@ -28,7 +29,7 @@ private:
 
     // Static callback for DLL logging
     static void (*s_logCallback)(const std::string&, ELogLevel);
-    static void LogWrapperFunc(const char* message, ESpeedReaderLogLevel level);
+    static void LogWrapperFunc(const char* message, ELogLevel level);
 
     // Helper to load function pointers
     template <typename T>

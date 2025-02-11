@@ -1,4 +1,5 @@
 #pragma once
+#include "shared.h"
 
 #ifdef SPEEDREADER_EXPORTS
     #define SPEEDREADER_API __declspec(dllexport)
@@ -6,15 +7,12 @@
     #define SPEEDREADER_API __declspec(dllimport)
 #endif
 
-// Define log level enum to match the main application
-enum ESpeedReaderLogLevel { ESpeedReaderLogLevel_INFO, ESpeedReaderLogLevel_WARNING, ESpeedReaderLogLevel_CRITICAL, ESpeedReaderLogLevel_DEBUG };
-
 // Define the logging callback type
-typedef void (*SpeedReaderLogCallback)(const char* message, ESpeedReaderLogLevel level);
+typedef void (*SpeedReaderLogCallback)(const char* message, ELogLevel level);
 
 extern "C" {
 // Initialize the speed reader - returns true if successful
-SPEEDREADER_API bool InitSpeedReader(SpeedReaderLogCallback logCallback = nullptr);
+SPEEDREADER_API bool InitSpeedReader(SpeedReaderLogCallback logCallback = nullptr, ELogLevel initLogLevel = ELogLevel_INFO);
 
 // Cleanup resources
 SPEEDREADER_API void CleanupSpeedReader();
@@ -30,4 +28,7 @@ SPEEDREADER_API bool IsSpeedReaderValid();
 
 // Refresh addresses (call this if values stop working)
 SPEEDREADER_API bool RefreshAddresses();
+
+// Set the log level
+SPEEDREADER_API void SetLogLevel(ELogLevel level);
 }
