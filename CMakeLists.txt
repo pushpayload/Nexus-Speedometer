@@ -1,4 +1,4 @@
-﻿# CMakeList.txt : CMake project for Nexus-HelloWorld, include source and define
+﻿# CMakeList.txt : CMake project for Nexus-Speedometer, include source and define
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.8)
@@ -30,7 +30,11 @@ if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
   set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 endif()
 
-project ("Nexus-HelloWorld")
+project ("Nexus-Speedometer")
+
+# Set path for speedreader.dll resource
+set(SPEEDREADER_DLL_PATH "${CMAKE_SOURCE_DIR}/resources/speedreader.dll")
+configure_file("${CMAKE_SOURCE_DIR}/src/resources.rc.in" "${CMAKE_SOURCE_DIR}/src/resources.rc" @ONLY)
 
 # Specify C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -41,7 +45,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Set DLL output name
-set(OUTPUT_NAME "Nexus-HelloWorld")
+set(OUTPUT_NAME "Nexus-Speedometer")
 
 # Add ImGui source files
 set(IMGUI_SOURCES
@@ -57,6 +61,8 @@ set(SOURCES
     src/entry.cpp
     src/shared.cpp
     src/settings.cpp
+    src/embedded_dll_loader.cpp
+    src/speedreader_loader.cpp
     ${IMGUI_SOURCES}  # Add ImGui sources to the build
 )
 
@@ -69,6 +75,14 @@ set(HEADERS
   src/nexus/Nexus.h
   src/nlohmann/json.hpp
   src/version.h
+  src/embedded_dll_loader.h
+  src/speedreader_loader.h
+)
+
+
+# Add resource file
+set(RESOURCES
+    src/resources.rc
 )
 
 # Create version.h before build (windows powershell, linux bash)
@@ -116,4 +130,4 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src/nexus
     ${CMAKE_SOURCE_DIR}/src/nlohmann
     $<$<STREQUAL:${CMAKE_HOST_SYSTEM_NAME},Linux>:/usr/${TOOLCHAIN_PREFIX}/include>
-)
+) 
