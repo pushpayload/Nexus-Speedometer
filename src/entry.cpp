@@ -320,6 +320,7 @@ void AddonOptions() {
             ImGui::Text("Speed Reader Valid: %s", g_speedReader.IsSpeedReaderValid() ? "Yes" : "No");
             ImGui::Text("Current Speed: %.1f", g_speedReader.GetCurrentSpeed());
             ImGui::Text("Max Speed: %.1f", g_speedReader.GetMaxSpeed());
+            ImGui::Text("Speed Reader Version: %s", g_speedReader.GetDllVersion());
         }
     }
 }

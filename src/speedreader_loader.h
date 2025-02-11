@@ -21,7 +21,7 @@ public:
     bool (*IsSpeedReaderValid)();
     bool (*RefreshAddresses)();
     void (*SetLogLevel)(ELogLevel);
-
+    const char* (*GetDllVersion)();
     bool IsLoaded() const { return m_hModule != nullptr; }
 
 private:

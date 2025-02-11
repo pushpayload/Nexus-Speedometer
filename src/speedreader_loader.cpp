@@ -16,7 +16,8 @@ SpeedReaderLoader::SpeedReaderLoader()
     , GetMaxSpeed(nullptr)
     , IsSpeedReaderValid(nullptr)
     , RefreshAddresses(nullptr)
-    , SetLogLevel(nullptr) {}
+    , SetLogLevel(nullptr)
+    , GetDllVersion(nullptr) {}
 
 SpeedReaderLoader::~SpeedReaderLoader() {
     Unload();
@@ -44,14 +45,13 @@ bool SpeedReaderLoader::Load(void (*logCallback)(const std::string&, ELogLevel),
     IsSpeedReaderValid = LoadFunction<bool (*)()>("IsSpeedReaderValid");
     RefreshAddresses = LoadFunction<bool (*)()>("RefreshAddresses");
     SetLogLevel = LoadFunction<void (*)(ELogLevel)>("SetLogLevel");
+    GetDllVersion = LoadFunction<const char* (*)()>("GetDllVersion");
 
     // Verify all functions were loaded
     if (!InitSpeedReader || !CleanupSpeedReader || !GetCurrentSpeed || !GetMaxSpeed || !IsSpeedReaderValid || !RefreshAddresses || !SetLogLevel) {
         Unload();
         return false;
-    }
-    // Test callback with logwrapperfunc
-    LogWrapperFunc("Test", ELogLevel::ELogLevel_INFO);
+    };
 
     // Initialize with logging callback
     return InitSpeedReader(LogWrapperFunc, initLogLevel);
