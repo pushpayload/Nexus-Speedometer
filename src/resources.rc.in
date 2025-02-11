@@ -1,3 +1,0 @@
-#include <windows.h>
-
-SPEEDREADER_DLL RCDATA "@SPEEDREADER_DLL_PATH@" 

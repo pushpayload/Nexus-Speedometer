@@ -1,6 +1,5 @@
 #include "speedreader_loader.h"
 #include <filesystem>
-#include "embedded_dll_loader.h"
 
 SpeedReaderLoader::SpeedReaderLoader()
     : m_hModule(nullptr)
@@ -9,8 +8,7 @@ SpeedReaderLoader::SpeedReaderLoader()
     , GetCurrentSpeed(nullptr)
     , GetMaxSpeed(nullptr)
     , IsSpeedReaderValid(nullptr)
-    , RefreshAddresses(nullptr)
-    , m_tempDllPath("") {}
+    , RefreshAddresses(nullptr) {}
 
 SpeedReaderLoader::~SpeedReaderLoader() {
     Unload();
@@ -19,18 +17,41 @@ SpeedReaderLoader::~SpeedReaderLoader() {
 bool SpeedReaderLoader::Load(const std::string& dllPath) {
     if (m_hModule) return true; // Already loaded
 
-    // Create temp path for the DLL
-    char tempPath[MAX_PATH];
-    GetTempPathA(MAX_PATH, tempPath);
-    m_tempDllPath = std::string(tempPath) + "speedreader_temp.dll";
-
-    // Extract and load the embedded DLL
-    if (!EmbeddedDllLoader::ExtractAndLoadDll(GetModuleHandle(NULL), "SPEEDREADER_DLL", m_tempDllPath)) {
+    // Get the directory of the current DLL
+    char modulePath[MAX_PATH];
+    if (!GetModuleFileNameA(GetModuleHandleA(NULL), modulePath, MAX_PATH)) {
+        OutputDebugStringA("Failed to get module path");
         return false;
     }
 
-    m_hModule = LoadLibraryA(m_tempDllPath.c_str());
-    if (!m_hModule) return false;
+    // Get the directory path
+    std::filesystem::path moduleDir = std::filesystem::path(modulePath).parent_path();
+    std::string speedreaderPath = (moduleDir / "speedreader.dll").string();
+
+    // Try to load the DLL
+    m_hModule = LoadLibraryA(speedreaderPath.c_str());
+    if (!m_hModule) {
+        DWORD error = GetLastError();
+        char* errorMsg = nullptr;
+        FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            error,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPSTR)&errorMsg,
+            0,
+            nullptr);
+
+        std::string errorStr = "Failed to load DLL. Error code: " + std::to_string(error);
+        if (errorMsg) {
+            errorStr += " Message: " + std::string(errorMsg);
+            LocalFree(errorMsg);
+        }
+
+        OutputDebugStringA(errorStr.c_str());
+        OutputDebugStringA(("Attempted to load from: " + speedreaderPath).c_str());
+        return false;
+    }
 
     // Load all function pointers
     InitSpeedReader = LoadFunction<bool (*)()>("InitSpeedReader");
@@ -42,6 +63,7 @@ bool SpeedReaderLoader::Load(const std::string& dllPath) {
 
     // Verify all functions were loaded
     if (!InitSpeedReader || !CleanupSpeedReader || !GetCurrentSpeed || !GetMaxSpeed || !IsSpeedReaderValid || !RefreshAddresses) {
+        OutputDebugStringA("Failed to load one or more functions");
         Unload();
         return false;
     }
@@ -65,10 +87,4 @@ void SpeedReaderLoader::Unload() {
     GetMaxSpeed = nullptr;
     IsSpeedReaderValid = nullptr;
     RefreshAddresses = nullptr;
-
-    // Clean up the temporary DLL file
-    if (!m_tempDllPath.empty()) {
-        EmbeddedDllLoader::Cleanup(m_tempDllPath);
-        m_tempDllPath.clear();
-    }
 }

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.env.*": "env",
+        "xstring": "cpp"
+    }
+}

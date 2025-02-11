@@ -1,3 +1,0 @@
-#include <windows.h>
-
-SPEEDREADER_DLL RCDATA "C:/dev/personal/GuildWars2/Nexus-Speedometer/resources/speedreader.dll" 

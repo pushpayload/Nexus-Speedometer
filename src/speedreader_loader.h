@@ -23,7 +23,6 @@ public:
 
 private:
     HMODULE m_hModule;
-    std::string m_tempDllPath;
 
     // Helper to load function pointers
     template <typename T>

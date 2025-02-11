@@ -32,10 +32,6 @@ endif()
 
 project ("Nexus-Speedometer")
 
-# Set path for speedreader.dll resource
-set(SPEEDREADER_DLL_PATH "${CMAKE_SOURCE_DIR}/resources/speedreader.dll")
-configure_file("${CMAKE_SOURCE_DIR}/src/resources.rc.in" "${CMAKE_SOURCE_DIR}/src/resources.rc" @ONLY)
-
 # Specify C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -61,7 +57,6 @@ set(SOURCES
     src/entry.cpp
     src/shared.cpp
     src/settings.cpp
-    src/embedded_dll_loader.cpp
     src/speedreader_loader.cpp
     ${IMGUI_SOURCES}  # Add ImGui sources to the build
 )
@@ -75,14 +70,7 @@ set(HEADERS
   src/nexus/Nexus.h
   src/nlohmann/json.hpp
   src/version.h
-  src/embedded_dll_loader.h
   src/speedreader_loader.h
-)
-
-
-# Add resource file
-set(RESOURCES
-    src/resources.rc
 )
 
 # Create version.h before build (windows powershell, linux bash)
@@ -108,7 +96,6 @@ add_custom_target(generate_version DEPENDS ${CMAKE_SOURCE_DIR}/src/version.h)
 add_library(${PROJECT_NAME} SHARED 
     ${SOURCES} 
     ${HEADERS}
-    ${RESOURCES}
     ${CMAKE_SOURCE_DIR}/src/version.h
 )
 
