@@ -1,0 +1,12 @@
+[submodule "src/mumble"]
+	path = src/mumble
+	url = https://github.com/RaidcoreGG/RCGG-lib-mumble-api
+	commit = 8c93788c3042dd6b401c0a93d17e34e1d4414e9a
+
+[submodule "src/nexus"]
+	path = src/nexus
+	url = https://github.com/RaidcoreGG/RCGG-lib-nexus-api
+	commit = e585220d489ed27feeb2dd208845f15472e0cf04
+[submodule "src/imgui"]
+	path = src/imgui
+	url = https://github.com/RaidcoreGG/imgui
