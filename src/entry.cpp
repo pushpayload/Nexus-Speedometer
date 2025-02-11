@@ -48,7 +48,7 @@ extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef() {
     AddonDef.Version.Build = V_BUILD;
     AddonDef.Version.Revision = V_REVISION;
     AddonDef.Author = "pushpayload";
-    AddonDef.Description = "Boilerplate Nexus addon";
+    AddonDef.Description = "Nexus Speedometer";
     AddonDef.Load = AddonLoad;
     AddonDef.Unload = AddonUnload;
     AddonDef.Flags = EAddonFlags_None;
@@ -78,17 +78,6 @@ void AddonLoad(AddonAPI* aApi) {
 
     APIDefs->Renderer.Register(ERenderType_Render, AddonRender);
     APIDefs->Renderer.Register(ERenderType_OptionsRender, AddonOptions);
-
-    // Initialize speedreader before Settings::Load
-    if (!g_speedReader.Load()) {
-        AddonLog("Failed to load speedreader.dll", ELogLevel::ELogLevel_CRITICAL);
-        return;
-    }
-
-    if (!g_speedReader.InitSpeedReader()) {
-        AddonLog("Failed to initialize speedreader", ELogLevel::ELogLevel_CRITICAL);
-        return;
-    }
 
     AddonPath = APIDefs->Paths.GetAddonDirectory("Nexus-Speedometer");
     SettingsPath = APIDefs->Paths.GetAddonDirectory("Nexus-Speedometer/settings.json");
@@ -217,6 +206,17 @@ void OnWindowResized(void* aEventArgs) {}
 
 void OnMumbleIdentityUpdated(void* aEventArgs) {
     MumbleIdentity = (Mumble::Identity*)aEventArgs;
+
+    if (NexusLink->IsGameplay) {
+        if (!g_speedReader.IsLoaded()) {
+            if (!g_speedReader.Load(AddonLog)) {
+                AddonLog("Failed to load speedreader.dll", ELogLevel::ELogLevel_CRITICAL);
+            }
+        }
+        if (g_speedReader.IsLoaded() && !g_speedReader.IsSpeedReaderValid()) {
+            g_speedReader.RefreshAddresses();
+        }
+    }
 }
 
 void ReceiveTexture(const char* aIdentifier, Texture* aTexture) {

@@ -1,5 +1,21 @@
 #include "speedreader_loader.h"
-#include <filesystem>
+
+// Initialize static member
+void (*SpeedReaderLoader::s_logCallback)(const std::string&, ELogLevel) = nullptr;
+
+void SpeedReaderLoader::LogWrapperFunc(const char* message, ESpeedReaderLogLevel level) {
+    if (!s_logCallback) return;
+
+    ELogLevel mappedLevel;
+    switch (level) {
+    case ESpeedReaderLogLevel_INFO: mappedLevel = ELogLevel_INFO; break;
+    case ESpeedReaderLogLevel_WARNING: mappedLevel = ELogLevel_WARNING; break;
+    case ESpeedReaderLogLevel_CRITICAL: mappedLevel = ELogLevel_CRITICAL; break;
+    case ESpeedReaderLogLevel_DEBUG: mappedLevel = ELogLevel_DEBUG; break;
+    default: mappedLevel = ELogLevel_INFO;
+    }
+    s_logCallback(std::string(message), mappedLevel);
+}
 
 SpeedReaderLoader::SpeedReaderLoader()
     : m_hModule(nullptr)
@@ -14,47 +30,17 @@ SpeedReaderLoader::~SpeedReaderLoader() {
     Unload();
 }
 
-bool SpeedReaderLoader::Load(const std::string& dllPath) {
+bool SpeedReaderLoader::Load(void (*logCallback)(const std::string&, ELogLevel)) {
     if (m_hModule) return true; // Already loaded
 
-    // Get the directory of the current DLL
-    char modulePath[MAX_PATH];
-    if (!GetModuleFileNameA(GetModuleHandleA(NULL), modulePath, MAX_PATH)) {
-        OutputDebugStringA("Failed to get module path");
-        return false;
-    }
+    // Store the log callback
+    s_logCallback = logCallback;
 
-    // Get the directory path
-    std::filesystem::path moduleDir = std::filesystem::path(modulePath).parent_path();
-    std::string speedreaderPath = (moduleDir / "speedreader.dll").string();
-
-    // Try to load the DLL
-    m_hModule = LoadLibraryA(speedreaderPath.c_str());
-    if (!m_hModule) {
-        DWORD error = GetLastError();
-        char* errorMsg = nullptr;
-        FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            nullptr,
-            error,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            (LPSTR)&errorMsg,
-            0,
-            nullptr);
-
-        std::string errorStr = "Failed to load DLL. Error code: " + std::to_string(error);
-        if (errorMsg) {
-            errorStr += " Message: " + std::string(errorMsg);
-            LocalFree(errorMsg);
-        }
-
-        OutputDebugStringA(errorStr.c_str());
-        OutputDebugStringA(("Attempted to load from: " + speedreaderPath).c_str());
-        return false;
-    }
+    m_hModule = LoadLibraryA("speedreader.dll");
+    if (!m_hModule) return false;
 
     // Load all function pointers
-    InitSpeedReader = LoadFunction<bool (*)()>("InitSpeedReader");
+    InitSpeedReader = LoadFunction<decltype(InitSpeedReader)>("InitSpeedReader");
     CleanupSpeedReader = LoadFunction<void (*)()>("CleanupSpeedReader");
     GetCurrentSpeed = LoadFunction<float (*)()>("GetCurrentSpeed");
     GetMaxSpeed = LoadFunction<float (*)()>("GetMaxSpeed");
@@ -63,12 +49,12 @@ bool SpeedReaderLoader::Load(const std::string& dllPath) {
 
     // Verify all functions were loaded
     if (!InitSpeedReader || !CleanupSpeedReader || !GetCurrentSpeed || !GetMaxSpeed || !IsSpeedReaderValid || !RefreshAddresses) {
-        OutputDebugStringA("Failed to load one or more functions");
         Unload();
         return false;
     }
 
-    return true;
+    // Initialize with logging callback
+    return InitSpeedReader(LogWrapperFunc);
 }
 
 void SpeedReaderLoader::Unload() {
@@ -79,6 +65,9 @@ void SpeedReaderLoader::Unload() {
         FreeLibrary(m_hModule);
         m_hModule = nullptr;
     }
+
+    // Clear the log callback
+    s_logCallback = nullptr;
 
     // Clear function pointers
     InitSpeedReader = nullptr;

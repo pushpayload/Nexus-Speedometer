@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include "shared.h" // For ELogLevel
+#include "speedreader.h" // For SpeedReaderLogCallback
 
 class SpeedReaderLoader
 {
@@ -8,11 +10,11 @@ public:
     SpeedReaderLoader();
     ~SpeedReaderLoader();
 
-    bool Load(const std::string& dllPath = "speedreader.dll");
+    bool Load(void (*logCallback)(const std::string&, ELogLevel) = nullptr);
     void Unload();
 
     // Function pointers matching the DLL exports
-    bool (*InitSpeedReader)();
+    bool (*InitSpeedReader)(SpeedReaderLogCallback);
     void (*CleanupSpeedReader)();
     float (*GetCurrentSpeed)();
     float (*GetMaxSpeed)();
@@ -23,6 +25,10 @@ public:
 
 private:
     HMODULE m_hModule;
+
+    // Static callback for DLL logging
+    static void (*s_logCallback)(const std::string&, ELogLevel);
+    static void LogWrapperFunc(const char* message, ESpeedReaderLogLevel level);
 
     // Helper to load function pointers
     template <typename T>
